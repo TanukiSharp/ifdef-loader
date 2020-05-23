@@ -23,41 +23,45 @@ const defs = {
    OS: "android"
 };
 
-describe("files spec", ()=> {
+const useRegexFlags = [true, false];
 
-   const files = [ "simple", "nested", "dfleury", "nested.else", "simple.doubleslash", "elif", "nested.elif", "earlyskip" ];
+useRegexFlags.forEach((useRegex: boolean) => {
+   describe("files spec", ()=> {
 
-   const fileSet = files.map(fn => ({
-      input:    `spec/data/${fn}.in.js`,
-      output:   `spec/data/${fn}.out.js`,
-      actual:   `spec/data/${fn}.out.actual.js`,
-      actualLF: `spec/data/${fn}.out.actual.lf.js`
-   }));
+      const files = [ "simple", "nested", "dfleury", "nested.else", "simple.doubleslash", "elif", "nested.elif", "earlyskip" ];
 
-   // checks spec files as terminating in CRLF (windows)
-   fileSet.forEach( ({ input, output, actual })=> {
-      it(`works on ${input}`, ()=> {
-         const tripleSlash = input.indexOf(".doubleslash.") == -1;
-         const inFile = read(input);         
-         const actualFile = parse(inFile, defs, false, tripleSlash);
-         const expectedFile = read(output);
-         write(actual, actualFile);
-         expect(actualFile).toEqual(expectedFile);
+      const fileSet = files.map(fn => ({
+         input:    `spec/data/${fn}.in.js`,
+         output:   `spec/data/${fn}.out.js`,
+         actual:   `spec/data/${fn}.out.actual.js`,
+         actualLF: `spec/data/${fn}.out.actual.lf.js`
+      }));
+
+      // checks spec files as terminating in CRLF (windows)
+      fileSet.forEach( ({ input, output, actual })=> {
+         it(`works on ${input}`, ()=> {
+            const tripleSlash = input.indexOf(".doubleslash.") == -1;
+            const inFile = read(input);
+            const actualFile = parse(inFile, defs, false, tripleSlash, undefined, useRegex);
+            const expectedFile = read(output);
+            write(actual, actualFile);
+            expect(actualFile).toEqual(expectedFile);
+         });
       });
-   });
 
-   // checks spec files as terminating in LF only (unix)
-   fileSet.forEach( ({ input, output, actualLF })=> {
-      it(`works on ${input}`, ()=> {
-         const tripleSlash = input.indexOf(".doubleslash.") == -1;
-         const inFile = removeCR(read(input));
-         const actualFile = parse(inFile, defs, false, tripleSlash);
-         const expectedFile = removeCR(read(output));
-         write(actualLF, actualFile);
-         expect(actualFile).toEqual(expectedFile);
+      // checks spec files as terminating in LF only (unix)
+      fileSet.forEach( ({ input, output, actualLF })=> {
+         it(`works on ${input}`, ()=> {
+            const tripleSlash = input.indexOf(".doubleslash.") == -1;
+            const inFile = removeCR(read(input));
+            const actualFile = parse(inFile, defs, false, tripleSlash, undefined, useRegex);
+            const expectedFile = removeCR(read(output));
+            write(actualLF, actualFile);
+            expect(actualFile).toEqual(expectedFile);
+         });
       });
-   });
 
+   });
 });
 
 describe("webpack bundle", ()=>{

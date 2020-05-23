@@ -1,4 +1,5 @@
 import { OptionObject } from 'loader-utils';
+import * as fallbackParser from './fallbackParser';
 
 /** Holds the line indexes for a complete #if block */
 class IfBlock {
@@ -36,10 +37,14 @@ class IfBlock {
 enum IfType { If, Elif }
 
 let useTripleSlash: boolean|undefined;
+let useRegex: boolean|undefined;
 
-export function parse(source: string, defs: OptionObject, verbose?: boolean, tripleSlash?: boolean, filePath?: string): string {
+export function parse(source: string, defs: OptionObject, verbose?: boolean, tripleSlash?: boolean, filePath?: string, regex?: boolean): string {
    if(tripleSlash === undefined) tripleSlash = true;
    useTripleSlash = tripleSlash;
+
+   if(regex === undefined) regex = true;
+   useRegex = regex;
 
    // early skip check: do not process file when no '#if' are contained
    if(source.indexOf('#if') === -1) return source;
@@ -112,7 +117,35 @@ function parse_if_block(lines: string[], ifBlockStart: number): IfBlock {
    return new IfBlock(ifBlockStart, foundEnd, foundElifs, foundElse, innerIfs);
 }
 
-const ifRegex = () => useTripleSlash ? /^[\s]*\/\/\/([\s]*)#(if|elif)([\s\S]+)$/g : /^[\s]*\/\/([\s]*)#(if|elif)([\s\S]+)$/g;
+const ifRegex = () => {
+   if (useRegex) {
+      return useTripleSlash ? /^\s*\/\/\/(\s*)#(if|elif)([\s\S]+)$/g : /^\s*\/\/(\s*)#(if|elif)([\s\S]+)$/g;
+   }
+
+   return {
+      exec: (line: string) => fallbackParser.matchIfElif(line, useTripleSlash !== false)
+   }
+};
+
+const elseRegex = () => {
+   if (useRegex) {
+      return useTripleSlash ? /^\s*\/\/\/(\s*)#(else)\s*$/g : /^\s*\/\/(\s*)#(else)\s*$/g;
+   }
+
+   return {
+      exec: (line: string) => fallbackParser.matchElse(line, useTripleSlash !== false)
+   }
+};
+
+const endifRegex = () => {
+   if (useRegex) {
+      return useTripleSlash ? /^\s*\/\/\/(\s*)#(endif)\s*$/g : /^\s*\/\/(\s*)#(endif)\s*$/g;
+   }
+
+   return {
+      exec: (line: string) => fallbackParser.matchEndIf(line, useTripleSlash !== false)
+   }
+}
 
 function match_if(line: string, type: IfType = IfType.If) : boolean {
    const re = ifRegex();
@@ -135,13 +168,13 @@ function parse_if(line: string): string {
 }
 
 function match_endif(line: string): boolean {
-   const re = useTripleSlash ? /^[\s]*\/\/\/([\s]*)#(endif)[\s]*$/g : /^[\s]*\/\/([\s]*)#(endif)[\s]*$/g;
+   const re = endifRegex();
    const match = re.exec(line);
    return Boolean(match);
 }
 
 function match_else(line: string): boolean {
-   const re = useTripleSlash ? /^[\s]*\/\/\/([\s]*)#(else)[\s]*$/g : /^[\s]*\/\/([\s]*)#(else)[\s]*$/g;
+   const re = elseRegex();
    const match = re.exec(line);
    return Boolean(match);
 }

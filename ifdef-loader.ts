@@ -16,6 +16,12 @@ export = function(source: string, map) {
       delete data[verboseFlag];
    }
 
+   const noRegexFlag = "ifdef-noregex";
+   const noRegex = data[noRegexFlag];
+   if(noRegex !== undefined) {
+      delete data[noRegexFlag];
+   }
+
    let filePath: string | undefined = undefined;
    if(verbose) {
       filePath = path.relative(this.rootContext || '', this.resourcePath);
@@ -28,7 +34,7 @@ export = function(source: string, map) {
    }
 
    try {
-      source = parse(source, data, verbose, tripleSlash, filePath);
+      source = parse(source, data, verbose, tripleSlash, filePath, !noRegex);
       this.callback(null, source, map);
    } catch(err) {
       const errorMessage = `ifdef-loader error: ${err}`;
